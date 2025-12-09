@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "482105615588",
+    "project_id": "babytrack-3e123",
+    "storage_bucket": "babytrack-3e123.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:482105615588:android:3fbcc4f3cc70a1b33538f1",
+        "android_client_info": {
+          "package_name": "fr.yoni.babytrack"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAj6E4PvO7nTm3tOxakxOvG19B1IAVRPII"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
