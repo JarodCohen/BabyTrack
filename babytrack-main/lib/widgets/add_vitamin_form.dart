@@ -48,7 +48,7 @@ class _AddVitaminFormState extends State<AddVitaminForm> {
   }
 
   CollectionReference _vitaminsRef(String bebe) => 
-      FirebaseFirestore.instance.collection('Babies').doc(bebe).collection('Vitamins');
+      FirebaseFirestore.instance.collection('Babies').doc(bebe).collection('VitaminEvents');
 
   void _submit() async {
     if (widget.selectedBebe.isEmpty) {
@@ -68,7 +68,7 @@ class _AddVitaminFormState extends State<AddVitaminForm> {
       );
 
       await _vitaminsRef(widget.selectedBebe).add({
-        'at': atValue,
+        'timestamp': atValue,
         'createdAt': Timestamp.now(),
         'source': 'manual',
       });

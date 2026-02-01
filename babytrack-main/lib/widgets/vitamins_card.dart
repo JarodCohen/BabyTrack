@@ -53,8 +53,8 @@ class VitaminsCard extends StatelessWidget {
     final stream = FirebaseFirestore.instance
         .collection('Babies')
         .doc(selectedBebe)
-        .collection('Vitamins')
-        .orderBy('at', descending: true)
+        .collection('VitaminEvents')
+        .orderBy('timestamp', descending: true)
         .limit(1)
         .snapshots();
 
@@ -70,8 +70,8 @@ class VitaminsCard extends StatelessWidget {
           final doc = snapshot.data!.docs.first;
           vitaminDoc = doc;
           final data = doc.data() as Map<String, dynamic>;
-          if (data['at'] != null) {
-            final date = data['at'] is DateTime ? data['at'] : (data['at'] as dynamic).toDate();
+          if (data['timestamp'] != null) {
+            final date = data['timestamp'] is DateTime ? data['timestamp'] : (data['timestamp'] as dynamic).toDate();
             vitaminDate = DateFormat('dd/MM/yyyy').format(date);
             vitaminTime = DateFormat('HH:mm').format(date);
             final now = DateTime.now();

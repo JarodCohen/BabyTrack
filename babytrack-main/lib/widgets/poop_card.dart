@@ -53,13 +53,13 @@ class _PoopCardState extends State<PoopCard> {
       );
     }
 
-    // Stream sur la sous-collection 'Poops' du document selectedBebe dans 'Babies'
+    // Stream sur la sous-collection 'PoopEvents' du document selectedBebe dans 'Babies'
     // On récupère directement le dernier document côté Firestore pour éviter de ramener tous les docs
     final stream = FirebaseFirestore.instance
         .collection('Babies')
         .doc(widget.selectedBebe)
-        .collection('Poops')
-        .orderBy('at', descending: true)
+        .collection('PoopEvents')
+        .orderBy('timestamp', descending: true)
         .limit(1)
         .snapshots();
 
@@ -74,8 +74,8 @@ class _PoopCardState extends State<PoopCard> {
           final doc = snapshot.data!.docs.first;
           poopDoc = doc;
           final data = doc.data() as Map<String, dynamic>;
-          if (data['at'] != null) {
-            final date = data['at'] is DateTime ? data['at'] : (data['at'] as dynamic).toDate();
+          if (data['timestamp'] != null) {
+            final date = data['timestamp'] is DateTime ? data['timestamp'] : (data['timestamp'] as dynamic).toDate();
             poopDate = '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
             poopTime = '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
           }

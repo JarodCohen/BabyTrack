@@ -21,13 +21,21 @@ class _EditPoopFormState extends State<EditPoopForm> {
   @override
   void initState() {
     super.initState();
-    // Lire le timestamp 'at' (peut être Timestamp ou DateTime)
-    final rawAt = widget.poopDoc.get('at');
-    final atDate = rawAt is Timestamp ? rawAt.toDate() : (rawAt as DateTime);
+    // Lire le timestamp 'timestamp' (peut être Timestamp ou DateTime)
+    final dataMap = widget.poopDoc.data() as Map<String, dynamic>?;
+    final rawAt = dataMap?['timestamp'];
+    DateTime atDate;
+    if (rawAt is Timestamp) {
+      atDate = rawAt.toDate();
+    } else if (rawAt is DateTime) {
+      atDate = rawAt;
+    } else {
+      atDate = DateTime.now();
+    }
     _selectedDate = DateTime(atDate.year, atDate.month, atDate.day);
     _selectedHour = atDate.hour;
     _selectedMinute = atDate.minute;
-    _notes = widget.poopDoc.get('notes') as String?;
+    _notes = dataMap?['notes'] as String?;
     _notesController = TextEditingController(text: _notes ?? '');
   }
 
@@ -63,11 +71,11 @@ class _EditPoopFormState extends State<EditPoopForm> {
     }
   }
 
-  // Retourne la référence vers la sous-collection Poops du bébé sélectionné
+  // Retourne la référence vers la sous-collection PoopEvents du bébé sélectionné
   CollectionReference get _poopCollectionRef => FirebaseFirestore.instance
       .collection('Babies')
       .doc(widget.selectedBebe)
-      .collection('Poops');
+      .collection('PoopEvents');
 
   void _submit() async {
     try {
@@ -77,7 +85,7 @@ class _EditPoopFormState extends State<EditPoopForm> {
       DateTime? oldAt;
       if (prevDoc.exists) {
         final pdata = prevDoc.data() as Map<String, dynamic>?;
-        final raw = pdata != null ? pdata['at'] ?? pdata['date'] : null;
+        final raw = pdata != null ? pdata['timestamp'] : null;
         if (raw is Timestamp) oldAt = raw.toDate();
         else if (raw is DateTime) oldAt = raw;
       }
@@ -87,7 +95,7 @@ class _EditPoopFormState extends State<EditPoopForm> {
       final sourceValue = existing != null && existing['source'] != null ? existing['source'] as String : 'manual';
 
       await _poopCollectionRef.doc(widget.poopDoc.id).update({
-        'at': atValue,
+        'timestamp': atValue,
         'notes': _notesController.text,
         'source': sourceValue,
       });
@@ -208,7 +216,7 @@ class _EditPoopFormState extends State<EditPoopForm> {
                       final pdata = prev.data() as Map<String, dynamic>?;
                       DateTime? at;
                       if (pdata != null) {
-                        final raw = pdata['at'] ?? pdata['date'];
+                        final raw = pdata['timestamp'];
                         if (raw is Timestamp) at = raw.toDate();
                         else if (raw is DateTime) at = raw;
                       }

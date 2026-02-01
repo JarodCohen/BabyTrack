@@ -5,6 +5,7 @@ import '../utils/size_config.dart';
 import 'home_page.dart';
 import 'statistics_page.dart';
 import '../widgets/bottle_settings_form.dart';
+import '../widgets/pending_rfid_sheet.dart';
 import 'add_baby_page.dart';
 
 class MainScreen extends StatefulWidget {
@@ -175,6 +176,17 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  void _showPendingRfids() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => PendingRfidSheet(
+        babyIds: _babyList,
+        babyNames: _babyNames,
+      ),
+    );
+  }
+
   List<Widget> get _pages => [
     HomePage(selectedBaby: _selectedBaby),
     StatisticsPage(selectedBaby: _selectedBaby),
@@ -274,6 +286,46 @@ class _MainScreenState extends State<MainScreen> {
           size: appBarIconSize,
         ),
         actions: [
+          // Pending RFID badge (real-time stream)
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('RfidMappings')
+                .where('status', isEqualTo: 'pending')
+                .snapshots(),
+            builder: (context, snapshot) {
+              final pendingCount = snapshot.data?.docs.length ?? 0;
+              if (pendingCount == 0) return const SizedBox.shrink();
+              
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.nfc),
+                    tooltip: 'Pending RFID tags',
+                    onPressed: _showPendingRfids,
+                  ),
+                  Positioned(
+                    right: 6,
+                    top: 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.blue,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        '$pendingCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
           // Pending requests badge
           if (_pendingRequestsCount > 0)
             Stack(

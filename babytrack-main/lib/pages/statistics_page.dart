@@ -9,7 +9,7 @@ class StatisticsPage extends StatelessWidget {
 
   const StatisticsPage({super.key, this.selectedBaby = '', this.onBabyAdded});
 
-  // Gets HistoryLogs stats for the last 7 days for the selected baby
+  // Gets stats for the last 7 days by querying actual subcollections
   Future<Map<String, dynamic>> _getHistoryLast7Days() async {
     if (selectedBaby.isEmpty) {
       return {
@@ -21,47 +21,116 @@ class StatisticsPage extends StatelessWidget {
     }
 
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final sevenDaysAgo = today.subtract(const Duration(days: 6));
+    
+    final babyRef = FirebaseFirestore.instance.collection('Babies').doc(selectedBaby);
+
+    // Fetch all bottles from last 7 days
+    final bottlesSnapshot = await babyRef
+        .collection('Bottles')
+        .where('startedAt', isGreaterThanOrEqualTo: sevenDaysAgo)
+        .where('startedAt', isLessThan: today.add(const Duration(days: 1)))
+        .get();
+
+    // Fetch all poops from last 7 days
+    final poopsSnapshot = await babyRef
+        .collection('PoopEvents')
+        .where('timestamp', isGreaterThanOrEqualTo: sevenDaysAgo)
+        .where('timestamp', isLessThan: today.add(const Duration(days: 1)))
+        .get();
+
+    // Fetch all vitamins from last 7 days
+    final vitaminsSnapshot = await babyRef
+        .collection('VitaminEvents')
+        .where('timestamp', isGreaterThanOrEqualTo: sevenDaysAgo)
+        .where('timestamp', isLessThan: today.add(const Duration(days: 1)))
+        .get();
+
+    // Group data by day
+    final Map<String, Map<String, dynamic>> dayData = {};
+    
+    // Initialize all 7 days
+    for (int i = 6; i >= 0; i--) {
+      final day = today.subtract(Duration(days: i));
+      final dateKey = '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+      dayData[dateKey] = {
+        'date': day,
+        'totalMl': 0,
+        'bottlesCount': 0,
+        'poopsCount': 0,
+        'vitamins': false,
+      };
+    }
+
+    // Process bottles
+    for (final doc in bottlesSnapshot.docs) {
+      final data = doc.data();
+      final rawDate = data['startedAt'];
+      DateTime? date;
+      if (rawDate is Timestamp) {
+        date = rawDate.toDate();
+      } else if (rawDate is DateTime) {
+        date = rawDate;
+      }
+      if (date != null) {
+        final dateKey = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+        if (dayData.containsKey(dateKey)) {
+          final quantity = (data['quantity'] as num?)?.toInt() ?? 0;
+          dayData[dateKey]!['totalMl'] = (dayData[dateKey]!['totalMl'] as int) + quantity;
+          dayData[dateKey]!['bottlesCount'] = (dayData[dateKey]!['bottlesCount'] as int) + 1;
+        }
+      }
+    }
+
+    // Process poops
+    for (final doc in poopsSnapshot.docs) {
+      final data = doc.data();
+      final rawDate = data['timestamp'];
+      DateTime? date;
+      if (rawDate is Timestamp) {
+        date = rawDate.toDate();
+      } else if (rawDate is DateTime) {
+        date = rawDate;
+      }
+      if (date != null) {
+        final dateKey = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+        if (dayData.containsKey(dateKey)) {
+          dayData[dateKey]!['poopsCount'] = (dayData[dateKey]!['poopsCount'] as int) + 1;
+        }
+      }
+    }
+
+    // Process vitamins
+    for (final doc in vitaminsSnapshot.docs) {
+      final data = doc.data();
+      final rawDate = data['timestamp'];
+      DateTime? date;
+      if (rawDate is Timestamp) {
+        date = rawDate.toDate();
+      } else if (rawDate is DateTime) {
+        date = rawDate;
+      }
+      if (date != null) {
+        final dateKey = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+        if (dayData.containsKey(dateKey)) {
+          dayData[dateKey]!['vitamins'] = true;
+        }
+      }
+    }
+
+    // Convert to list and calculate totals
     int totalQuantity = 0;
     int totalCount = 0;
     final List<Map<String, dynamic>> days = [];
 
-    for (int i = 6; i >= 0; i--) {
-      final day = DateTime(now.year, now.month, now.day).subtract(Duration(days: i));
-      final dateKey = '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
-      try {
-        final doc = await FirebaseFirestore.instance
-            .collection('Babies')
-            .doc(selectedBaby)
-            .collection('HistoryLogs')
-            .doc(dateKey)
-            .get();
-
-        final data = doc.data();
-        final int dayTotalMl = (data != null && data['bottlesTotalQuantity'] != null) ? (data['bottlesTotalQuantity'] as num).toInt() : 0;
-        final int dayCount = (data != null && data['bottlesCount'] != null) ? (data['bottlesCount'] as num).toInt() : 0;
-        final int poops = (data != null && data['poopsCount'] != null) ? (data['poopsCount'] as num).toInt() : 0;
-        final int vitaminsCount = (data != null && data['vitaminsCount'] != null) ? (data['vitaminsCount'] as num).toInt() : 0;
-
-        totalQuantity += dayTotalMl;
-        totalCount += dayCount;
-
-        days.add({
-          'date': day,
-          'totalMl': dayTotalMl,
-          'bottlesCount': dayCount,
-          'poopsCount': poops,
-          'vitamins': vitaminsCount > 0,
-        });
-      } catch (e) {
-        // On error, consider the day as empty
-        days.add({
-          'date': day,
-          'totalMl': 0,
-          'bottlesCount': 0,
-          'poopsCount': 0,
-          'vitamins': false,
-        });
-      }
+    // Sort by date (oldest first)
+    final sortedKeys = dayData.keys.toList()..sort();
+    for (final key in sortedKeys) {
+      final day = dayData[key]!;
+      totalQuantity += day['totalMl'] as int;
+      totalCount += day['bottlesCount'] as int;
+      days.add(day);
     }
 
     final averagePerBottle = totalCount > 0 ? totalQuantity / totalCount : 0.0;

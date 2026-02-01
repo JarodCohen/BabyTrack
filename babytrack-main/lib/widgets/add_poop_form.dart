@@ -17,11 +17,11 @@ class _AddPoopFormState extends State<AddPoopForm> {
   DateTime _selectedDate = DateTime.now();
   String? _notes;
 
-  // Référence vers la sous-collection Poops du bébé sélectionné
+  // Référence vers la sous-collection PoopEvents du bébé sélectionné
   CollectionReference get _poopCollectionRef => FirebaseFirestore.instance
       .collection('Babies')
       .doc(widget.selectedBebe)
-      .collection('Poops');
+      .collection('PoopEvents');
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -67,7 +67,7 @@ class _AddPoopFormState extends State<AddPoopForm> {
     try {
       final atValue = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, _selectedHour, _selectedMinute);
       await _poopCollectionRef.add({
-        'at': atValue,
+        'timestamp': atValue,
         'createdAt': Timestamp.now(),
         'notes': _notes,
         'source': 'manual',

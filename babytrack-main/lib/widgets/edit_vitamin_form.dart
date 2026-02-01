@@ -20,7 +20,7 @@ class _EditVitaminFormState extends State<EditVitaminForm> {
   void initState() {
     super.initState();
     final dataMap = widget.vitaminDoc.data() as Map<String, dynamic>?;
-    final rawAt = dataMap != null ? dataMap['at'] : null;
+    final rawAt = dataMap != null ? dataMap['timestamp'] : null;
     DateTime atDate;
     if (rawAt is Timestamp) {
       atDate = rawAt.toDate();
@@ -82,14 +82,14 @@ class _EditVitaminFormState extends State<EditVitaminForm> {
       DateTime? oldAt;
       if (prev.exists) {
         final pdata = prev.data() as Map<String, dynamic>?;
-        final raw = pdata != null ? pdata['at'] : null;
+        final raw = pdata != null ? pdata['timestamp'] : null;
         if (raw is Timestamp) oldAt = raw.toDate();
         else if (raw is DateTime) oldAt = raw;
       }
 
       // Update document
       await widget.vitaminDoc.reference.update({
-        'at': atValue,
+        'timestamp': atValue,
         'source': sourceValue,
       });
 
@@ -137,7 +137,7 @@ class _EditVitaminFormState extends State<EditVitaminForm> {
         final pdata = prev.data() as Map<String, dynamic>?;
         DateTime? at;
         if (pdata != null) {
-          final raw = pdata['at'];
+          final raw = pdata['timestamp'];
           if (raw is Timestamp) at = raw.toDate();
           else if (raw is DateTime) at = raw;
         }

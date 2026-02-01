@@ -1,0 +1,120 @@
+#include <WiFi.h>
+#include <Firebase_ESP_Client.h>
+#include "addons/TokenHelper.h"
+#include "Baby.h"
+#include "Bottle.h"
+#include "FirebaseService.h"
+
+#define WIFI_SSID "HOTBOX-1671"
+#define WIFI_PASSWORD "086a0a211671"
+#define API_KEY "AIzaSyDFyQbtOKu3f9bd6mAL4axxoJ_yxnFgQq8"
+#define FIREBASE_PROJECT_ID "babytrack-3e123"
+
+FirebaseData fbdo;
+FirebaseAuth auth;
+FirebaseConfig config;
+FirebaseService* firebaseService;
+
+void setup() {
+  Serial.begin(115200);
+  delay(2000);
+  
+  Serial.println("\n=== ESP32 Firebase Test ===\n");
+  
+  // WiFi
+  Serial.println("1. Connecting to WiFi...");
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(500);
+  }
+  
+  Serial.println("\n✓ WiFi Connected!");
+  Serial.println("   IP: " + WiFi.localIP().toString());
+
+  // Firebase Config
+  Serial.println("\n2. Configuring Firebase...");
+  
+  config.api_key = API_KEY;
+  
+  // Sign in anonymously - THIS IS THE KEY!
+  Serial.println("   Signing in anonymously...");
+  if (Firebase.signUp(&config, &auth, "", "")) {
+    Serial.println("   ✓ Anonymous sign-up initiated");
+  } else {
+    Serial.println("   ✗ Sign-up failed: " + String(config.signer.signupError.message.c_str()));
+  }
+  
+  config.token_status_callback = tokenStatusCallback;
+  
+  // Initialize Firebase
+  Serial.println("\n3. Initializing Firebase...");
+  Firebase.begin(&config, &auth);
+  Firebase.reconnectWiFi(true);
+  
+  firebaseService = new FirebaseService(&fbdo, FIREBASE_PROJECT_ID);
+  
+  // Wait for authentication
+  Serial.println("\n4. Waiting for authentication...");
+  unsigned long startTime = millis();
+  while (!Firebase.ready() && (millis() - startTime) < 30000) {
+    Serial.print(".");
+    delay(500);
+  }
+  
+  if (Firebase.ready()) {
+    Serial.println("\n✓ Firebase is ready!");
+    
+    delay(2000);
+    testGetBaby();
+    delay(2000);
+    testGetBottles();
+    
+  } else {
+    Serial.println("\n✗ Firebase timeout!");
+    Serial.println("Trying anyway...");
+    delay(5000);
+    testGetBaby();
+  }
+}
+void testGetBottles() {
+  Serial.println("\n=== TEST: Get All Bottles ===");
+  
+  String babyId = "239664840";
+  std::vector<Bottle> bottles;
+  
+  if (firebaseService->getBottles(babyId, bottles)) {
+    Serial.println("\n✓ SUCCESS! Retrieved " + String(bottles.size()) + " bottles");
+    
+    if (bottles.size() == 0) {
+      Serial.println("No bottles found for this baby");
+    } else {
+      for (int i = 0; i < bottles.size(); i++) {
+        Serial.println("\n--- Bottle #" + String(i + 1) + " ---");
+        bottles[i].print();
+      }
+    }
+  } else {
+    Serial.println("\n✗ Failed to get bottles");
+  }
+}
+void testGetBaby() {
+  Serial.println("\n=== GET BABY TEST ===");
+  
+  String babyId = "239664840";
+  Baby baby;
+  
+  if (firebaseService->getBabyById(babyId, baby)) {
+    Serial.println("\n✓✓✓ SUCCESS! ✓✓✓");
+    baby.print();
+  } else {
+    Serial.println("\n✗✗✗ FAILED ✗✗✗");
+    Serial.println("Error: " + fbdo.errorReason());
+    Serial.println("HTTP Code: " + String(fbdo.httpCode()));
+  }
+}
+
+void loop() {
+  delay(1000);
+}

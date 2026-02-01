@@ -3,9 +3,9 @@
 
 // NeoPixel
 #define LED_PIN    26
-#define LED_COUNT  3
+#define LED_COUNT  9
 
-// LDR sur GPIO 35 (ton montage actuel)
+// LDR sur GPIO 32 (ton montage actuel)
 #define LDR_PIN    32
 
 static Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
@@ -23,6 +23,7 @@ void initLed() {
 
 void setLedColor(uint8_t r, uint8_t g, uint8_t b) {
   strip.setPixelColor(0, strip.Color(r, g, b));
+  strip.fill(strip.Color(r, g, b),0,LED_COUNT);
   strip.show();
 }
 
